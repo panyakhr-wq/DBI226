@@ -7,19 +7,26 @@
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-100">
-    <div class="flex flex-col gap-32">
-        <div class="bg-pink-100 h-2/6 lg:h-96 lg:bg-pink-200 gap-6 flex flex-row items-center justify-between px-32 shadow-lg">
-            <div><img src="s1.png" alt="" class="rounded-full" width="300px"></div>    
+    <div class="flex flex-col gap-10 lg:gap-32">
+        
+        <div class="bg-pink-100 h-64 lg:h-96 lg:bg-pink-200 flex flex-row items-center justify-center lg:justify-between px-6 lg:px-32 shadow-lg">
+            <div>
+                <img src="s1.png" alt="" class="rounded-full w-40 lg:w-[300px]">
+            </div>    
         </div>
 
         <div class="flex flex-col items-center justify-center">
-            <div class="bg-slate-50 h-3/5 lg:h-[1440px] w-4/5 lg:bg-slate-50 flex flex-col justify-center items-center gap-24 shadow-lg">
-                <div class="flex gap-24">
-                <div class="flex pt-16"><img src="f1.jpg" alt="" width="550"></div>
-                <div><img src="f2.jpg" alt="" width="550"></div>
-                <div class="flex pt-16"><img src="f3.jpg" alt="" width="550"></div>
+            <div class="bg-slate-50 min-h-[600px] lg:h-[1440px] w-[95%] lg:w-4/5 flex flex-col justify-center items-center gap-10 lg:gap-24 shadow-lg p-6 lg:p-0">
+                
+                <div class="flex flex-col lg:flex-row gap-6 lg:gap-24 items-center">
+                    <div class="lg:pt-16"><img src="f1.jpg" alt="" class="w-full max-w-[550px] rounded-lg"></div>
+                    <div><img src="f2.jpg" alt="" class="w-full max-w-[550px] rounded-lg"></div>
+                    <div class="lg:pt-16"><img src="f3.jpg" alt="" class="w-full max-w-[550px] rounded-lg"></div>
                 </div>
-                <div class="bg-purple-100 w-[26rem] h-32 flex items-center justify-center border rounded-2xl text-5xl shadow-lg">Mini Game</div>
+
+                <div class="bg-purple-100 w-64 lg:w-[26rem] h-20 lg:h-32 flex items-center justify-center border rounded-2xl text-2xl lg:text-5xl shadow-lg">
+                    Mini Game
+                </div>
             </div>
         </div>
     </div>
