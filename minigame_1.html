@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="th" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Storybook Reader - Minecraft Edition</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&family=Playfair+Display:wght@400;600;700&family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { min-height: 100vh; background-color: #ffffff; font-family: 'Prompt', sans-serif; }
+    
+    /* #app { min-height: 100vh; display: flex; align-items: center; justify-content: center; } */
+    /* แก้ไขจาก justify-content: center; เป็น flex-start */
+#app { 
+    min-height: calc(100vh - 7rem); /* หักลบความสูง header ออก */
+    display: flex; 
+    align-items: flex-start; /* เปลี่ยนจาก center */
+    justify-content: center; 
+    padding-top: 2rem; /* กำหนดระยะห่างจากหัวเว็บตามใจชอบ */
+}
+
+    /* Flipbook Styles */
+    .reader-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(10, 10, 30, 0.96); z-index: 900; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.5s ease; }
+    .reader-overlay.active { opacity: 1; pointer-events: all; }
+    
+    /* Cover Card */
+    .book-card { perspective: 1200px; cursor: pointer; transition: transform 0.3s ease; }
+    .book-card:hover { transform: translateY(-10px); }
+    .book-cover-3d { position: relative; width: 220px; height: 320px; transform-style: preserve-3d; transition: transform 0.4s ease; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.3); border-radius: 4px 15px 15px 4px; overflow: hidden; }
+    
+    /* Flipbook Engine */
+    .flipbook-container { perspective: 2000px; position: relative; }
+    .flipbook { position: relative; transform-style: preserve-3d; box-shadow: 0 30px 50px rgba(0,0,0,0.5); }
+    .page-wrapper { position: absolute; top: 0; width: 50%; height: 100%; transform-style: preserve-3d; transition: transform 0.8s cubic-bezier(0.645, 0.045, 0.355, 1.000); transform-origin: left center; right: 0; z-index: 1; }
+    .page-wrapper.flipped { transform: rotateY(-180deg); z-index: 10; }
+    
+    .page-front, .page-back { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 0 8px 8px 0; overflow: hidden; display: flex; flex-direction: column; background: #fefcf3; }
+    .page-back { transform: rotateY(180deg); border-radius: 8px 0 0 8px; background: #faf6e8; }
+    
+    .left-page-static { position: absolute; top: 0; left: 0; width: 50%; height: 100%; background: #fefcf3; border-radius: 8px 0 0 8px; display: flex; flex-direction: column; overflow: hidden; }
+    .book-spine { position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 20px; height: 100%; background: linear-gradient(to right, rgba(0,0,0,0.2), transparent, rgba(0,0,0,0.2)); z-index: 50; pointer-events: none; }
+    
+    /* UI Elements */
+    .nav-btn { width: 56px; height: 56px; border-radius: 50%; background: rgba(255,255,255,0.1); color: white; display: flex; align-items: center; justify-content: center; transition: all 0.3s; backdrop-filter: blur(5px); }
+    .nav-btn:hover:not(:disabled) { background: rgba(255,255,255,0.2); transform: scale(1.1); }
+    .nav-btn:disabled { opacity: 0.1; cursor: not-allowed; }
+    .close-btn { position: absolute; top: 30px; right: 30px; color: white; z-index: 1000; transition: transform 0.3s; }
+    .close-btn:hover { transform: rotate(90deg); color: #f472b6; }
+    
+    .page-num { position: absolute; bottom: 15px; font-size: 12px; color: #94a3b8; font-weight: bold; }
+    
+    /* เพิ่ม CSS ส่วนนี้เข้าไปใน <style> */
+.page-front img, .page-back img, .left-page-static img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain; /* เปลี่ยนจาก cover เป็น contain */
+    background-color: #000000a8; /* ใส่สีพื้นหลังให้กลืนไปกับกระดาษ */
+    padding: 2px; /* เพิ่มพื้นที่ว่างรอบๆ รูปให้ดูเหมือนพิมพ์บนกระดาษจริง */
+}
+
+    @media (max-width: 768px) {
+      .flipbook { width: 92vw !important; height: 65vw !important; }
+      .nav-btn { width: 44px; height: 44px; }
+    }
+  </style>
+</head>
+
+<body class="bg-gray-50">
+  <div class="bg-gray-700 w-full h-[4.2rem] lg:h-[10rem] flex items-center justify-between px-6 lg:px-[10rem] shadow-xl ">
+    
+    <a href="index.html">
+      <div class="flex-shrink-0 rounded-full shadow-lg hover:scale-110"> <img src="logohom.jpg" alt="Home Logo" width="120" style="border-radius: 50%;" class="w-[60px] lg:w-[120px]"> 
+        </div>
+    </a>
+
+    <div class="flex gap-4 lg:gap-10">
+      <a href="https://www.instagram.com/perfume.studio.kk?igsh=NDM1MnN1Y2p3dWZw" target="_blank" rel="noopener noreferrer">
+        <div class="hover:scale-110"><img src="Instagram_logo_2022.svg" class="w-[3rem]" alt="iG"></div>
+      </a>
+        
+      <a href="https://web.facebook.com/profile.php?id=61581338545900" target="_blank" rel="noopener noreferrer">
+        <div class="hover:scale-110"><img src="Facebook_Logo_(2019).png" class="w-[3rem]" alt="iG"></div>
+      </a>
+    </div>
+
+</div>
+
+<div id="app">
+    <div class="text-center flex flex-col items-center">
+        
+        <h1 class="text-3xl font-bold text-black mb-8 ">คู่มือทำน้ำหอม</h1>
+        
+        <div class="book-card inline-block mb-10" id="openBookBtn">
+            <div class="book-cover-3d group">
+                <img src="book.jpg" alt="หน้าปกนิทาน" class="w-full h-full object-cover" onerror="this.src='https://placehold.co/400x600/e91e63/ffffff?text=MY+STORY'">
+                <div class="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-all flex items-center justify-center"></div>
+            </div>
+        </div>
+
+        <div class="inline-block rounded-full shadow-lg mb-20">
+            <a href="minigame_2.html" class="block">
+                 <img src="play.png" alt="ปุ่มเล่นเกม" 
+                         class="w-[6rem] lg:w-[8rem] hover:scale-110 transition-transform duration-300 cursor-pointer block">
+                
+            </a>
+        </div>
+
+    </div>
+</div>
+
+    <div class="reader-overlay" id="readerOverlay">
+      <button class="close-btn" id="closeReader">
+        <i data-lucide="x" class="w-10 h-10"></i>
+      </button>
+
+      <button class="nav-btn" id="prevBtn" style="position:absolute; left:24px; z-index:150;">
+        <i data-lucide="chevron-left" class="w-8 h-8"></i>
+      </button>
+      
+      <div class="flipbook-container">
+        <div class="flipbook" id="flipbook" style="width: 860px; height: 560px;">
+          <div class="book-spine"></div>
+          <div class="left-page-static" id="leftPage"></div>
+        </div>
+      </div>
+      
+      <button class="nav-btn" id="nextBtn" style="position:absolute; right:24px; z-index:150;">
+        <i data-lucide="chevron-right" class="w-8 h-8"></i>
+      </button>
+
+      <div id="pageIndicator" style="position:absolute; bottom:40px; color:rgba(255,255,255,0.6); font-family:monospace;"></div>
+    </div>
+  </div>
+
+  
+     <div class="bg-black w-full h-[10rem] shadow-xl"></div>
+ 
+  <script>
+    // --- 1. ข้อมูลนิทาน ---
+    const story = {
+      pages: [
+        { imageUrl: "book1.png" }, // หน้า 1 (ซ้าย spread 0)
+        { imageUrl: "book2.png" }, // หน้า 2 (ขวา spread 0)
+        { imageUrl: "book3.png" }, // หน้า 3 (ซ้าย spread 1)
+        { imageUrl: "book4.png" }, // หน้า 4 (ขวา spread 1)
+        { imageUrl: "book5.png" }, // หน้า 5 (ซ้าย spread 2)
+        { imageUrl: "book6.png" }  // หน้า 6 (ขวา spread 2)
+      ]
+    };
+
+    let currentSpread = 0;
+    let pageWrappers = [];
+
+    // --- 2. ฟังก์ชันระบบ Flipbook ---
+    
+    function buildFlipbook() {
+      const flipbook = document.getElementById('flipbook');
+      // ล้างหน้าเก่า (ถ้ามี)
+      pageWrappers.forEach(pw => pw.remove());
+      pageWrappers = [];
+
+      const totalLeaves = Math.ceil(story.pages.length / 2);
+
+      for (let i = 0; i < totalLeaves; i++) {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'page-wrapper';
+        wrapper.style.zIndex = totalLeaves - i;
+
+        // หน้าหน้า (Right page of current spread)
+        const frontIdx = i * 2 + 1;
+        const frontPage = story.pages[frontIdx];
+        const front = document.createElement('div');
+        front.className = 'page-front';
+        front.innerHTML = frontPage 
+            ? `<img src="${frontPage.imageUrl}" class="w-full h-full object-cover"><span class="page-num" style="right:15px;">${frontIdx+1}</span>` 
+            : `<div class="m-auto text-gray-300">จบเรื่อง</div>`;
+        wrapper.appendChild(front);
+
+        // หน้าหลัง (Left page of NEXT spread)
+        const backIdx = (i + 1) * 2;
+        const backPage = story.pages[backIdx];
+        const back = document.createElement('div');
+        back.className = 'page-back';
+        back.innerHTML = backPage 
+            ? `<img src="${backPage.imageUrl}" class="w-full h-full object-cover"><span class="page-num" style="left:15px;">${backIdx+1}</span>` 
+            : `<div class="m-auto text-gray-300">The End</div>`;
+        wrapper.appendChild(back);
+
+        flipbook.appendChild(wrapper);
+        pageWrappers.push(wrapper);
+      }
+      updateLeftPage();
+    }
+
+    function updateLeftPage() {
+      const leftPage = document.getElementById('leftPage');
+      const leftIdx = currentSpread * 2;
+      const page = story.pages[leftIdx];
+      if (page) {
+        leftPage.innerHTML = `<img src="${page.imageUrl}" class="w-full h-full object-cover"><span class="page-num" style="left:15px;">${leftIdx+1}</span>`;
+      }
+    }
+
+    function goNext() {
+      if (currentSpread >= pageWrappers.length) return;
+      const leaf = pageWrappers[currentSpread];
+      if (leaf) {
+        leaf.classList.add('flipped');
+        leaf.style.zIndex = 10 + currentSpread;
+      }
+      currentSpread++;
+      setTimeout(updateLeftPage, 400); // อัปเดตหน้าซ้ายหลังจากพลิกไปครึ่งทาง
+      updateNavigation();
+    }
+
+    function goPrev() {
+      if (currentSpread <= 0) return;
+      currentSpread--;
+      const leaf = pageWrappers[currentSpread];
+      if (leaf) {
+        leaf.classList.remove('flipped');
+        leaf.style.zIndex = pageWrappers.length - currentSpread;
+      }
+      setTimeout(updateLeftPage, 400);
+      updateNavigation();
+    }
+
+    function updateNavigation() {
+      const totalSpreads = Math.ceil(story.pages.length / 2);
+      document.getElementById('prevBtn').disabled = currentSpread <= 0;
+      document.getElementById('nextBtn').disabled = currentSpread >= totalSpreads;
+      
+      const p1 = currentSpread * 2 + 1;
+      const p2 = Math.min(p1 + 1, story.pages.length);
+      document.getElementById('pageIndicator').textContent = `หน้า ${p1} - ${p2} จาก ${story.pages.length}`;
+    }
+
+    // --- 3. การควบคุม Overlay ---
+    
+    document.getElementById('openBookBtn').onclick = () => {
+      currentSpread = 0;
+      buildFlipbook();
+      document.getElementById('readerOverlay').classList.add('active');
+      updateNavigation();
+    };
+
+    document.getElementById('closeReader').onclick = () => {
+      document.getElementById('readerOverlay').classList.remove('active');
+    };
+
+    document.getElementById('nextBtn').onclick = goNext;
+    document.getElementById('prevBtn').onclick = goPrev;
+
+    // รองรับการใช้คีย์บอร์ด
+    document.addEventListener('keydown', (e) => {
+      if (!document.getElementById('readerOverlay').classList.contains('active')) return;
+      if (e.key === 'ArrowRight') goNext();
+      if (e.key === 'ArrowLeft') goPrev();
+      if (e.key === 'Escape') document.getElementById('closeReader').click();
+    });
+
+    lucide.createIcons();
+  </script>
+</body>
+</html>
